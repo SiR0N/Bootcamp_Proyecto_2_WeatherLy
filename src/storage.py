@@ -43,3 +43,21 @@ def save_data(data):
         print(f"Error saving data: {e}")
     
 
+def is_duplicate(new_record, existing_data):
+    """
+    Comprueba si un registro es duplicado.
+    Un duplicado es aquel que tiene el mismo 'date' y 'city'.
+    """
+
+    # Recorremos todos los registros ya guardados
+    for record in existing_data:
+
+        # Comprobamos si coinciden date y city
+        if record["date"] == new_record["date"] and record["city"] == new_record["city"]:
+            return True  # Es duplicado
+
+    return False  # No es duplicado
+
+
+
+
