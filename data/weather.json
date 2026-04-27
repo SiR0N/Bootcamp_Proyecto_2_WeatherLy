@@ -1,1 +1,10 @@
-[]
+[
+    {
+        "date": "2026-04-23T14:30",
+        "city": "Toledo",
+        "temp": 22.5,
+        "hum": 60.0,
+        "wind": 15.0,
+        "source": "Console"
+    }
+]

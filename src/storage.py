@@ -31,5 +31,15 @@ def load_data():   #Función para leer el histórico guardado en el archivo JSON
         return []
 
   
- 
+def save_data(data):
+    try:
+        # Abrimos el archivo en modo escritura (borra lo anterior y escribe nuevo)
+        with open(FILE_PATH, "w", encoding="utf-8") as file:
+            # Guardamos los datos en formato JSON
+            json.dump(data, file, indent=4, ensure_ascii=False)
+
+    except Exception as e:
+        # Si hay error, lo mostramos
+        print(f"Error saving data: {e}")
     
+
