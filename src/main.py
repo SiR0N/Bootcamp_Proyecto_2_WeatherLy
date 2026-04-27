@@ -4,8 +4,8 @@ from datetime import datetime
 
 from api_client import WeatherAPIClient
 from storage import Storage
-from validator import WeatherValidator
-from alerts import AlertEngine
+from Bootcamp_Proyecto_2_WeatherLy.src.validator import WeatherValidator
+from Bootcamp_Proyecto_2_WeatherLy.src.alerts import AlertEngine
 from scheduler import Scheduler
 from logger_config import setup_logging   # ← AQUÍ EL CAMBIO
 
