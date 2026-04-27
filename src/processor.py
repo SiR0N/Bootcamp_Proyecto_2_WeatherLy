@@ -1,5 +1,5 @@
-from validator import validate_record
-from alerts import generate_alerts
+from Bootcamp_Proyecto_2_WeatherLy.src.validator import validate_record
+from Bootcamp_Proyecto_2_WeatherLy.src.alerts import generate_alerts
 
 
 def process_weather_data(data):
