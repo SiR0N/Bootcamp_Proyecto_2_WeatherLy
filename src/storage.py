@@ -59,5 +59,24 @@ def is_duplicate(new_record, existing_data):
     return False  # No es duplicado
 
 
+def add_record(new_record):
+    """
+    Añade un nuevo registro al archivo JSON si no está duplicado.
+    Si ya existe un registro con la misma date y city, no lo guarda.
+    """
 
+    # Cargamos los datos que ya existen en weather.json
+    data = load_data()
+
+    # Comprobamos si el nuevo registro ya existe
+    if is_duplicate(new_record, data):
+        return "Duplicate record. Not saved."
+
+    # Si no es duplicado, lo añadimos a la lista
+    data.append(new_record)
+
+    # Guardamos la lista actualizada en el JSON
+    save_data(data)
+
+    return "Record saved successfully."
 
