@@ -1,19 +1,15 @@
 import requests
 import logging
+from cities import CITY_MAP
+
+log = logging.getLogger(__name__)   # Logger del módulo
+
 
 class WeatherAPIClient:
     def __init__(self):
-        # URL base de la API Open-Meteo
         self.base_url = "https://api.open-meteo.com/v1/forecast"
-        
-        # Mapeo de las 5 capitales de Castilla-La Mancha
-        self.city_map = {
-            (40.63, -3.16): "Guadalajara",
-            (39.86, -4.02): "Toledo",
-            (38.99, -3.92): "Ciudad Real",
-            (38.99, -1.86): "Albacete",
-            (40.07, -2.13): "Cuenca"
-        }
+
+        self.city_map = CITY_MAP
 
     def get_weather_data(self, lat, lon):
         """
@@ -26,16 +22,31 @@ class WeatherAPIClient:
             "timezone": "auto"
         }
 
+        log.info(f"Solicitando datos meteorológicos para lat={lat}, lon={lon}")
+        log.debug(f"Parámetros enviados a la API: {params}")
+
         try:
             response = requests.get(self.base_url, params=params, timeout=10)
-            response.raise_for_status() 
+            response.raise_for_status()
+
             raw_data = response.json()
-            
-            return self.normalize_data(raw_data, lat, lon, source_name="Open Meteo")
+            log.debug(f"Respuesta cruda de la API: {raw_data}")
+
+            normalized = self.normalize_data(raw_data, lat, lon, source_name="Open Meteo")
+            log.info(f"Datos normalizados correctamente para {normalized['city']}")
+
+            return normalized
+
+        except requests.exceptions.HTTPError as e:
+            log.error(f"Error HTTP al llamar a la API: {e}")
+            return self.get_error_fallback(lat, lon)
+
+        except requests.exceptions.Timeout:
+            log.error("Timeout al llamar a la API")
+            return self.get_error_fallback(lat, lon)
 
         except Exception as error:
-            logging.error(f"Error fetching data: {error}")
-            # Si falla la API, la fuente debe indicar ERROR, no Console
+            log.exception(f"Error inesperado al obtener datos: {error}")
             return self.get_error_fallback(lat, lon)
 
     def normalize_data(self, data, lat, lon, source_name):
@@ -44,7 +55,9 @@ class WeatherAPIClient:
         """
         current = data.get("current", {})
         city_name = self.city_map.get((lat, lon), "Unknown City")
-        
+
+        log.debug(f"Normalizando datos para {city_name}")
+
         return {
             "date": current.get("time"),
             "city": city_name,
@@ -54,12 +67,14 @@ class WeatherAPIClient:
             "source": source_name
         }
 
+    #is_dupicated duplicada?
     def is_duplicate(self, new_record, existing_records):
         """
         Comprueba si el registro ya existe (misma fecha/hora y ciudad).
         """
         for record in existing_records:
             if record["date"] == new_record["date"] and record["city"] == new_record["city"]:
+                log.warning(f"Registro duplicado detectado: {new_record}")
                 return True
         return False
 
@@ -68,6 +83,8 @@ class WeatherAPIClient:
         Caso de FALLO de red o API. Fuente: 'Error'.
         """
         city_name = self.city_map.get((lat, lon), "Unknown City")
+        log.warning(f"Usando fallback por error de API para {city_name}")
+
         return {
             "date": "N/A",
             "city": city_name,
@@ -75,18 +92,4 @@ class WeatherAPIClient:
             "hum": 0,
             "wind": 0.0,
             "source": "Error"
-        }
-
-    def get_manual_input(self, lat, lon, date, temp, hum, wind):
-        """
-        Para cuando se introducen datos MANUALMENTE. Fuente: 'Console'.
-        """
-        city_name = self.city_map.get((lat, lon), "Unknown City")
-        return {
-            "date": date,
-            "city": city_name,
-            "temp": float(temp),
-            "hum": int(hum),
-            "wind": float(wind),
-            "source": "Console"
         }
