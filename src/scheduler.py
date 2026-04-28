@@ -1,24 +1,22 @@
-import logging
-import sys
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 from api_client import WeatherAPIClient
+import logging
 from cities import CITY_MAP
+
 
 # INTEGRACIÓN CON VANESSA Y GEMA
 from validator import validate_record
 from alerts import generate_alerts
 from storage import Storage
 
-# Configuración para ver los logs en la terminal
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
+
 
 log = logging.getLogger(__name__)
 client = WeatherAPIClient()
 storage = Storage() # Instancia de Gema
+
+
 
 def job_update_weather():
     log.info("=== INICIANDO ACTUALIZACIÓN PROGRAMADA ===")
