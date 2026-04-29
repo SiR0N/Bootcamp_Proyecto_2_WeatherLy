@@ -1,18 +1,21 @@
 # main.py
-import json
 from datetime import datetime
+
+# Importación de Configuración y Datos
+from cities import CITY_MAP 
+from logger_config import setup_logging 
+
 
 from api_client import WeatherAPIClient
 from storage import Storage
-from Bootcamp_Proyecto_2_WeatherLy.src.validator import WeatherValidator
-from Bootcamp_Proyecto_2_WeatherLy.src.alerts import AlertEngine
+from validator import WeatherValidator
+from alerts import AlertEngine
 from scheduler import Scheduler
-from logger_config import setup_logging   # ← AQUÍ EL CAMBIO
 
 log = setup_logging()
 
-
 def init_components():
+    """Inicializa todas las clases y las guarda en un diccionario."""
     return {
         "api": WeatherAPIClient(),
         "storage": Storage("weather.json"),
@@ -21,116 +24,128 @@ def init_components():
         "scheduler": Scheduler(),
     }
 
-
 def fetch_and_process(components):
+    """
+    Orquesta el flujo completo para todas las ciudades.
+    Esta es la lógica que antes tenías en job_update_weather.
+    """
     api = components["api"]
     storage = components["storage"]
     validator = components["validator"]
-    alerts = components["alerts"]
+    alerts_engine = components["alerts"]
 
-    log.info("Solicitando datos meteorológicos...")
+    log.info("=== INICIANDO CICLO DE ACTUALIZACIÓN ===")
 
-    # 1. Obtener datos
-    try:
-        data = api.get_current_weather()
-        log.debug(f"Datos recibidos: {data}")
-    except Exception:
-        log.exception("Error al obtener datos de la API")
-        return
+    for coords, city in CITY_MAP.items():
+        try:
+            lat, lon = coords 
+            log.info(f"Procesando {city} (lat={lat}, lon={lon})")
 
-    # 2. Validar
-    ok, errors = validator.validate(data)
-    if not ok:
-        log.warning(f"Datos inválidos: {errors}")
-        return
+            # 1. Obtener datos (Luis)
+            data = api.get_weather_data(lat, lon)
 
-    # 3. Guardar
-    record = {
-        "date": datetime.utcnow().isoformat(timespec="minutes"),
-        "city": data["city"],
-        "temp": data["temp"],
-        "hum": data["hum"],
-        "wind": data["wind"],
-        "source": "API"
-    }
+            if data:
+                data['city'] = city # Inyectamos el nombre para validación y storage
 
-    try:
-        storage.append_record(record)
-        log.info("Registro guardado correctamente")
-    except Exception:
-        log.exception("Error al guardar en weather.json")
-        return
+                # 2. Validar (Vanessa - Validator)
+                is_ok, errors = validator.validate_record(data)
+                if not is_ok:
+                    log.error(f"Datos inválidos para {city}: {errors}")
+                    continue
 
-    # 4. Alertas
-    triggered = alerts.evaluate(data)
-    for alert in triggered:
-        log.warning(f"ALERTA: {alert.message}")
+                # 3. Alertas (Vanessa - AlertEngine)
+                triggered_alerts = alerts_engine.generate_alerts(data)
+                log.info(f"Datos recibidos en {city}: Temp={data.get('temp')}°C")
 
+                for alert in triggered_alerts:
+                    if alert["level"] != "INFO":
+                        log.warning(f"¡ALERTA! [{city}] {alert['metric'].upper()}: {alert['message']}")
+
+                # 4. Guardar (Gema - Storage)
+                # Añadimos metadatos antes de guardar
+                data["date"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
+                data["source"] = "API_Weather_System"
+                
+                result = storage.add_record(data)
+                log.info(f"Guardado exitoso para {city}: {result}")
+
+            else:
+                log.warning(f"Sin respuesta de API para {city}")
+
+        except Exception as e:
+            # log.exception incluye el rastreo del error para debuggear mejor
+            log.exception(f"Error inesperado procesando {city}: {e}")
+
+    log.info("=== CICLO DE ACTUALIZACIÓN FINALIZADO ===")
 
 def show_menu():
-    print("\n=== Weather App ===")
-    print("1. Actualizar datos ahora")
-    print("2. Ver último registro")
-    print("3. Configurar tareas automáticas")
+    print("\n" + "="*25)
+    print("   WEATHER DASHBOARD")
+    print("="*25)
+    print("1. Actualizar ciudades ahora")
+    print("2. Ver último registro guardado")
+    print("3. Configurar automatización")
     print("4. Salir")
-
 
 def view_last(components):
     storage = components["storage"]
     last = storage.get_last_record()
 
     if not last:
-        print("No hay registros todavía.")
+        print("\n[!] No hay datos en weather.json.")
         return
 
-    print("\n--- Último registro ---")
-    for k, v in last.items():
-        print(f"{k}: {v}")
-
+    print("\n--- ÚLTIMO REGISTRO ENCONTRADO ---")
+    for key, value in last.items():
+        print(f"{key.capitalize()}: {value}")
 
 def setup_scheduler(components):
     scheduler = components["scheduler"]
 
-    print("\nTareas automáticas:")
-    print("1. Cada 5 minutos")
-    print("2. Cada 30 minutos")
-    print("3. Desactivar")
+    print("\n--- CONFIGURACIÓN DE AUTOMATIZACIÓN ---")
+    print("1. Ejecutar cada 15 minutos")
+    print("2. Ejecutar cada 60 minutos")
+    print("3. Desactivar tareas automáticas")
 
-    op = input("Opción: ").strip()
+    op = input("Seleccione opción: ").strip()
 
     if op == "1":
-        scheduler.schedule_job(lambda: fetch_and_process(components), 5)
-        print("Programado cada 5 minutos.")
+        scheduler.schedule_job(lambda: fetch_and_process(components), 15)
+        print("[+] Programado cada 15 minutos.")
     elif op == "2":
-        scheduler.schedule_job(lambda: fetch_and_process(components), 30)
-        print("Programado cada 30 minutos.")
+        scheduler.schedule_job(lambda: fetch_and_process(components), 60)
+        print("[+] Programado cada 60 minutos.")
     elif op == "3":
         scheduler.cancel_all()
-        print("Tareas desactivadas.")
+        print("[-] Tareas automáticas desactivadas.")
     else:
-        print("Opción no válida.")
-
+        print("[!] Opción no válida.")
 
 def main():
     components = init_components()
-    log.info("Aplicación iniciada")
+    log.info("Aplicación iniciada. Menú interactivo listo.")
 
-    while True:
-        show_menu()
-        op = input("Selecciona una opción: ").strip()
+    try:
+        while True:
+            show_menu()
+            op = input(">> ").strip()
 
-        if op == "1":
-            fetch_and_process(components)
-        elif op == "2":
-            view_last(components)
-        elif op == "3":
-            setup_scheduler(components)
-        elif op == "4":
-            log.info("Saliendo de la aplicación")
-            break
-        else:
-            print("Opción no válida.")
-
+            if op == "1":
+                fetch_and_process(components)
+            elif op == "2":
+                view_last(components)
+            elif op == "3":
+                setup_scheduler(components)
+            elif op == "4":
+                log.info("Cerrando aplicación...")
+                components["scheduler"].shutdown()
+                break
+            else:
+                print("Opción no válida, intente de nuevo.")
+                
+    except KeyboardInterrupt:
+        log.info("Interrupción detectada. Apagando sistema...")
+        components["scheduler"].shutdown()
 
 if __name__ == "__main__":
     main()
