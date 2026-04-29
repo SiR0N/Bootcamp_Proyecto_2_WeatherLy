@@ -74,6 +74,12 @@ class Storage:
         log.info(f"Nuevo registro añadido: {new_record}")
         return "Record saved successfully."
 
+    def get_last_record(self):
+        """Devuelve el último registro guardado o None si está vacío."""
+        data = self.load_data()
+        if data:
+            return data[-1]  # Retorna el último elemento de la lista
+        return None
 
 
 
