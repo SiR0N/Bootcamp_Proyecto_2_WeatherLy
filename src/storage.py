@@ -1,13 +1,75 @@
+from importlib.metadata import files
 import json
 import os
 import logging
+import shutil
+from datetime import datetime
 
 log = logging.getLogger(__name__)   # Logger del módulo
 class Storage:
     def __init__(self, file_path="data/weather.json"):
         self.file_path = file_path
+        self.ensure_file_exists()
+        self.backup_created = False
 
+    def ensure_file_exists(self):
+        """Asegura que el archivo JSON exista."""
 
+        folder = os.path.dirname(self.file_path)
+
+        # Solo crear carpeta si existe nombre de carpeta
+        if folder and not os.path.exists(folder):
+            os.makedirs(folder, exist_ok=True)
+
+        if not os.path.exists(self.file_path):
+            with open(self.file_path, "w", encoding="utf-8") as file:
+                json.dump([], file, indent=4, ensure_ascii=False)
+
+            log.info(f"Archivo creado automáticamente: {self.file_path}")
+
+    def create_backup(self):
+        """
+        Crea una copia de seguridad con fecha.
+        """
+        if not os.path.exists(self.file_path):
+            return
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        backup_path = self.file_path.replace(
+            ".json",
+            f"_{timestamp}.json"
+        )
+
+        shutil.copy(self.file_path, backup_path)
+
+        log.info(f"Backup creado: {backup_path}")
+
+    def clean_old_backups(self, max_backups=5):
+        """
+        Mantiene solo los últimos N backups y borra los antiguos.
+        """
+        folder = os.path.dirname(self.file_path)
+
+        # Obtener archivos backup
+        files = [
+            f for f in os.listdir(folder)
+            if f.startswith("weather_") and f.endswith(".json")
+        ]
+
+        # Ordenarlos por nombre (ya incluye fecha)
+        files.sort()
+
+        # Si hay más de los permitidos → borrar los más antiguos
+        if len(files) > max_backups:
+            to_delete = files[:len(files) - max_backups]
+
+            for f in to_delete:
+                path = os.path.join(folder, f)
+                os.remove(path)
+                log.info(f"Backup antiguo eliminado: {path}")   
+    
+    
     def load_data(self):
         """Lee el archivo JSON y devuelve la lista de registros."""
         if not os.path.exists(self.file_path):
@@ -37,6 +99,17 @@ class Storage:
     def save_data(self, data):
         """Guarda la lista completa de registros en el archivo JSON."""
         try:
+            
+            #Hacer Backup antes de sobrescribir. Crear solo 1 backup por ejecución para evitar demasiados archivos. Solo si el archivo ya existe (no tiene sentido hacer backup de un archivo vacío).
+            if not self.backup_created and os.path.exists(self.file_path):
+                self.create_backup()
+                self.clean_old_backups() 
+                self.backup_created = True
+
+             #  Asegurar archivo antes de guardar
+            self.ensure_file_exists()
+
+            #Guardar datos nuevos
             with open(self.file_path, "w", encoding="utf-8") as file:
                 json.dump(data, file, indent=4, ensure_ascii=False)
 

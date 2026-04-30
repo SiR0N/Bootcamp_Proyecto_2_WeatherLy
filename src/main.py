@@ -18,7 +18,7 @@ def init_components():
     """Inicializa todas las clases y las guarda en un diccionario."""
     return {
         "api": WeatherAPIClient(),
-        "storage": Storage("weather.json"),
+        "storage": Storage("data/weather.json"),
         "validator": WeatherValidator(),
         "alerts": AlertEngine(),
         "scheduler": Scheduler(),
