@@ -24,7 +24,8 @@ DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 os.makedirs(LOGS_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
-data_storage_path = os.path.join(DATA_DIR, "weather.json") 
+data_storage_path = os.path.join(DATA_DIR, "weather.json")
+alerts_storage_path = os.path.join(DATA_DIR, "alerts.json")
 log_storage_path = os.path.join(LOGS_DIR, "app.log") 
 
 log = setup_logging(log_storage_path)
@@ -211,6 +212,8 @@ def init_components():
     return {
         "api": WeatherAPIClient(),
         "storage": Storage(data_storage_path),
+        "alerts_storage": Storage(alerts_storage_path),
+
         "validator": WeatherValidator(),
         "alerts": AlertEngine(),
         "scheduler": Scheduler(),
@@ -226,6 +229,7 @@ def fetch_and_process(components):
     storage = components["storage"]
     validator = components["validator"]
     alerts_engine = components["alerts"]
+    alerts_storage = components["alerts_storage"]
 
     log.info("=== INICIANDO CICLO DE ACTUALIZACIÓN ===")
 
@@ -251,9 +255,25 @@ def fetch_and_process(components):
                     if alert["level"] != "INFO":
                         log.warning(f"¡ALERTA! [{city}] {alert['metric'].upper()}: {alert['message']}")
 
+
+
+                    alert_record = {
+                        "date": datetime.now().strftime("%Y-%m-%dT%H:%M"),
+                        "city": city,
+                        "level": alert["level"],
+                        "metric": alert["metric"],
+                        "value": alert["value"],
+                        "message": alert["message"],
+                        "source": "API_Weather_System"
+                    }
+                    alerts_storage.add_record(alert_record)
+
+                # 4. Guardar 
+                # Añadimos metadatos antes de guardar
                 data["date"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
                 data["source"] = "API_Weather_System"
                 
+            
                 result = storage.add_record(data)
                 log.info(f"Guardado exitoso para {city}: {result}")
 
@@ -369,8 +389,6 @@ def show_menu(storage):
     print("5. Ver graficos por ciudad")
     print("6. Ver graficos de ciudad")
     print("7. Salir")
-
-
 def view_last(components):
     show_logo_super_small()
     type_effect("Cargando registros...", 0.02)
@@ -402,6 +420,41 @@ def view_last(components):
         for key, value in record.items():
             print(f"{key.capitalize()}: {value}")
 
+
+def view_alerts(components):
+    alerts_storage = components["alerts_storage"]
+    alerts = alerts_storage.load_data()
+
+    if not alerts:
+        print("\n[!] No hay alertas registradas.")
+        return
+
+    city_filter = input("Ciudad (deja vacío para ver todas): ").strip().lower()
+    date_filter = input("Fecha YYYY-MM-DD (deja vacío para ver todas): ").strip()
+
+    filtered_alerts = []
+
+    for alert in alerts:
+        city_matches = not city_filter or alert.get("city", "").lower() == city_filter
+        date_matches = not date_filter or alert.get("date", "").startswith(date_filter)
+
+        if city_matches and date_matches:
+            filtered_alerts.append(alert)
+
+    if not filtered_alerts:
+        print("\n[!] No hay alertas con esos filtros.")
+        return
+
+    print("\n--- ALERTAS FILTRADAS ---")
+
+    for alert in filtered_alerts:
+        print(f"Fecha: {alert.get('date')}")
+        print(f"Ciudad: {alert.get('city')}")
+        print(f"Nivel: {alert.get('level')}")
+        print(f"Métrica: {alert.get('metric')}")
+        print(f"Valor: {alert.get('value')}")
+        print(f"Mensaje: {alert.get('message')}")
+        print("---------------------------")
 
 def setup_scheduler(components):
     show_logo_super_small()
@@ -448,7 +501,7 @@ def main():
             elif op == "2":
                 view_last(components)
             elif op == "3":
-                setup_scheduler(components)
+                view_alerts(components)
             elif op == "4":
                 view_stats(components)
             elif op == "5":

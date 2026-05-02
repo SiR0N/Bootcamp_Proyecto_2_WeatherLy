@@ -1,5 +1,5 @@
+# Entorno virtual
 venv/
-__pycache__/
 .env
 
 __pycache__/
@@ -12,7 +12,7 @@ logs/
 # Ignorar TODOS los JSON de datos
 data/*.json
 
-# PERMITIR SOLO los ejemplos (IMPORTANTE: va después)
+# PERMITIR SOLO los ejemplos 
 !data/*.example.json
 
 
