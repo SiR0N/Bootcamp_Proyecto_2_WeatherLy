@@ -2,14 +2,13 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-def setup_logging():
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
+def setup_logging(log_dir):
+    
     
     format_str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     
     # Rotación para trazabilidad profesional
-    handler = RotatingFileHandler('logs/app.log', maxBytes=5*1024*1024, backupCount=3)
+    handler = RotatingFileHandler(log_dir, maxBytes=5*1024*1024, backupCount=3)
     handler.setFormatter(logging.Formatter(format_str))
     
     logger = logging.getLogger()

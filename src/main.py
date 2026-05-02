@@ -12,14 +12,30 @@ from validator import WeatherValidator
 from alerts import AlertEngine
 from scheduler import Scheduler
 
-log = setup_logging()
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
+PROJECT_ROOT = os.path.dirname(BASE_DIR)               
+
+LOGS_DIR = os.path.join(PROJECT_ROOT, "logs")
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+
+os.makedirs(LOGS_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
+
+data_storage_path = os.path.join(DATA_DIR, "weather.json")
+alerts_storage_path = os.path.join(DATA_DIR, "alerts.json")
+log_storage_path = os.path.join(LOGS_DIR, "app.log") 
+
+log = setup_logging(log_storage_path)
 
 def init_components():
     """Inicializa todas las clases y las guarda en un diccionario."""
     return {
         "api": WeatherAPIClient(),
-        "storage": Storage("data/weather.json"),
-        "alerts_storage": Storage("data/alerts.json"),
+        "storage": Storage(data_storage_path),
+        "alerts_storage": Storage(alerts_storage_path),
+
         "validator": WeatherValidator(),
         "alerts": AlertEngine(),
         "scheduler": Scheduler(),

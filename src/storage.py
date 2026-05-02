@@ -6,8 +6,9 @@ import shutil
 from datetime import datetime
 
 log = logging.getLogger(__name__)   # Logger del módulo
+
 class Storage:
-    def __init__(self, file_path="data/weather.json"):
+    def __init__(self, file_path):
         self.file_path = file_path
         self.ensure_file_exists()
         self.backup_created = False
