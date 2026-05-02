@@ -1,0 +1,10 @@
+[
+  {
+    "date": "2026-05-02T10:00",
+    "city": "Toledo",
+    "temp": 22.5,
+    "hum": 60,
+    "wind": 15.2,
+    "source": "Open Meteo"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "date": "2026-05-02T10:00",
+    "city": "Toledo",
+    "level": "WARNING",
+    "metric": "temp",
+    "value": 42,
+    "message": "Abnormal temperature"
+  }
+]

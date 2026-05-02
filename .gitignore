@@ -1,6 +1,27 @@
+# Entorno virtual
 venv/
-__pycache__/
 .env
-# No subir datos del proyecto
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+logs/
+*.log
+
+# Ignorar TODOS los JSON de datos
 data/*.json
-!data/.gitkeep
+
+# PERMITIR SOLO los ejemplos (IMPORTANTE: va después)
+!data/*.example.json
+
+# Tests manuales
+test_alerts_storage.py
+
+# Sistema / editor
+.vscode/
+.DS_Store
+Thumbs.db
+
+src/logs/
