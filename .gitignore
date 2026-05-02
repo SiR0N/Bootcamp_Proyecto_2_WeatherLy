@@ -2,7 +2,6 @@
 venv/
 .env
 
-# Python
 __pycache__/
 *.pyc
 
@@ -13,15 +12,11 @@ logs/
 # Ignorar TODOS los JSON de datos
 data/*.json
 
-# PERMITIR SOLO los ejemplos (IMPORTANTE: va después)
+# PERMITIR SOLO los ejemplos 
 !data/*.example.json
 
-# Tests manuales
-test_alerts_storage.py
 
 # Sistema / editor
 .vscode/
 .DS_Store
 Thumbs.db
-
-src/logs/

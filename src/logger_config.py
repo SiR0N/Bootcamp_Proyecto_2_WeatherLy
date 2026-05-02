@@ -16,8 +16,8 @@ def setup_logging(log_dir):
     logger.addHandler(handler)
     
     # Salida por consola para ver el progreso
-    console = logging.StreamHandler()
-    console.setFormatter(logging.Formatter(format_str))
-    logger.addHandler(console)
+    #console = logging.StreamHandler()
+    #console.setFormatter(logging.Formatter(format_str))
+    #logger.addHandler(console)
     
     return logger

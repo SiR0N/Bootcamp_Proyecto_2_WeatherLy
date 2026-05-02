@@ -154,6 +154,18 @@ class Storage:
         if data:
             return data[-1]  # Retorna el último elemento de la lista
         return None
+    
+    def get_last_records_by_city(self, city, limit=10):
+        """Devuelve los últimos N registros de una ciudad."""
+        data = self.load_data()
+
+        # Filtrar por ciudad
+        filtered = [r for r in data if r.get("city") == city]
+
+        # Ordenar por fecha (YYYY-MM-DDTHH:MM)
+        filtered.sort(key=lambda x: x.get("date", ""), reverse=True)
+
+        return filtered[:limit]
 
 
 
