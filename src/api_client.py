@@ -22,13 +22,15 @@ class WeatherAPIClient:
             "timezone": "auto"
         }
 
+
+
         log.info(f"Solicitando datos meteorológicos para lat={lat}, lon={lon}")
         log.debug(f"Parámetros enviados a la API: {params}")
 
         try:
             response = requests.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
-
+            
             raw_data = response.json()
             log.debug(f"Respuesta cruda de la API: {raw_data}")
 
