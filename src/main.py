@@ -19,6 +19,7 @@ def init_components():
     return {
         "api": WeatherAPIClient(),
         "storage": Storage("data/weather.json"),
+        "alerts_storage": Storage("data/alerts.json"),
         "validator": WeatherValidator(),
         "alerts": AlertEngine(),
         "scheduler": Scheduler(),
@@ -33,6 +34,7 @@ def fetch_and_process(components):
     storage = components["storage"]
     validator = components["validator"]
     alerts_engine = components["alerts"]
+    alerts_storage = components["alerts_storage"]
 
     log.info("=== INICIANDO CICLO DE ACTUALIZACIÓN ===")
 
@@ -61,6 +63,18 @@ def fetch_and_process(components):
                     if alert["level"] != "INFO":
                         log.warning(f"¡ALERTA! [{city}] {alert['metric'].upper()}: {alert['message']}")
 
+                    #3.1 Persistencia de alertas (Gema - Storage)
+                    # Guardar alertas relevantes en alerts.json
+                        alert_record = {
+                            "date": datetime.now().strftime("%Y-%m-%dT%H:%M"),
+                            "city": city,
+                            "level": alert["level"],
+                            "metric": alert["metric"],
+                            "value": alert["value"],
+                            "message": alert["message"]
+                    }
+                        alerts_storage.add_record(alert_record)
+
                 # 4. Guardar (Gema - Storage)
                 # Añadimos metadatos antes de guardar
                 data["date"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
@@ -84,8 +98,9 @@ def show_menu():
     print("="*25)
     print("1. Actualizar ciudades ahora")
     print("2. Ver último registro guardado")
-    print("3. Configurar automatización")
-    print("4. Salir")
+    print("3. Ver alertas registradas")
+    print("4. Configurar automatización")
+    print("5. Salir")
 
 def view_last(components):
     storage = components["storage"]
@@ -98,6 +113,41 @@ def view_last(components):
     print("\n--- ÚLTIMO REGISTRO ENCONTRADO ---")
     for key, value in last.items():
         print(f"{key.capitalize()}: {value}")
+
+def view_alerts(components):
+    alerts_storage = components["alerts_storage"]
+    alerts = alerts_storage.load_data()
+
+    if not alerts:
+        print("\n[!] No hay alertas registradas.")
+        return
+
+    city_filter = input("Ciudad (deja vacío para ver todas): ").strip().lower()
+    date_filter = input("Fecha YYYY-MM-DD (deja vacío para ver todas): ").strip()
+
+    filtered_alerts = []
+
+    for alert in alerts:
+        city_matches = not city_filter or alert.get("city", "").lower() == city_filter
+        date_matches = not date_filter or alert.get("date", "").startswith(date_filter)
+
+        if city_matches and date_matches:
+            filtered_alerts.append(alert)
+
+    if not filtered_alerts:
+        print("\n[!] No hay alertas con esos filtros.")
+        return
+
+    print("\n--- ALERTAS FILTRADAS ---")
+
+    for alert in filtered_alerts:
+        print(f"Fecha: {alert.get('date')}")
+        print(f"Ciudad: {alert.get('city')}")
+        print(f"Nivel: {alert.get('level')}")
+        print(f"Métrica: {alert.get('metric')}")
+        print(f"Valor: {alert.get('value')}")
+        print(f"Mensaje: {alert.get('message')}")
+        print("---------------------------")
 
 def setup_scheduler(components):
     scheduler = components["scheduler"]
@@ -135,8 +185,10 @@ def main():
             elif op == "2":
                 view_last(components)
             elif op == "3":
-                setup_scheduler(components)
+                view_alerts(components)
             elif op == "4":
+                setup_scheduler(components)
+            elif op == "5":
                 log.info("Cerrando aplicación...")
                 components["scheduler"].shutdown()
                 break
