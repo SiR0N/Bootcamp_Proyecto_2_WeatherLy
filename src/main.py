@@ -5,13 +5,14 @@ from datetime import datetime
 from cities import CITY_MAP 
 from logger_config import setup_logging 
 
-
 from api_client import WeatherAPIClient
 from storage import Storage
 from validator import WeatherValidator
 from alerts import AlertEngine
 from scheduler import Scheduler
 
+import time
+import sys
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
@@ -28,8 +29,185 @@ log_storage_path = os.path.join(LOGS_DIR, "app.log")
 
 log = setup_logging(log_storage_path)
 
+
+import statistics
+import plotext as plt
+
+def view_stats_graph(components):
+    storage = components["storage"]
+    cities = list(CITY_MAP.values())
+
+    temps = []
+    hums = []
+    winds = []
+
+    for city in cities:
+        records = storage.get_last_records_by_city(city, limit=200)
+        if not records:
+            temps.append(None)
+            hums.append(None)
+            winds.append(None)
+            continue
+
+        stats = compute_stats(records)
+        temps.append(stats["temp_mean"])
+        hums.append(stats["hum_mean"])
+        winds.append(stats["wind_mean"])
+
+    plt.clear_figure()
+    plt.clear_data()
+    
+    indices = list(range(len(cities)))
+
+    plt.title("Medias por Ciudad")
+    plt.xlabel("Ciudad")
+    plt.ylabel("Valor")
+
+    plt.plot(indices, temps, label="Temp (°C)")
+    plt.plot(indices, hums, label="Humedad (%)")
+    plt.plot(indices, winds, label="Viento (km/h)")
+
+    plt.xticks(indices, cities)
+
+    plt.canvas_color("default")
+    plt.axes_color("default")
+    plt.ticks_color("white")
+
+
+    plt.show()
+
+def compute_stats(records):
+
+    temps = [r["temp"] for r in records if "temp" in r]
+    hums = [r["hum"] for r in records if "hum" in r]
+    winds = [r["wind"] for r in records if "wind" in r]
+
+    return {
+        "temp_mean": round(statistics.mean(temps), 2) if temps else None,
+        "temp_median": round(statistics.median(temps), 2) if temps else None,
+        "hum_mean": round(statistics.mean(hums), 2) if hums else None,
+        "hum_median": round(statistics.median(hums), 2) if hums else None,
+        "wind_mean": round(statistics.mean(winds), 2) if winds else None,
+        "wind_median": round(statistics.median(winds), 2) if winds else None,
+    }
+
+def view_stats(components):
+    show_logo_super_small()
+    type_effect("Calculando estadísticas...", 0.02)
+
+    storage = components["storage"]
+    cities = list(CITY_MAP.values())
+
+    print("\n--- ESTADÍSTICAS POR CIUDAD ---")
+    for city in cities:
+        records = storage.get_last_records_by_city(city, limit=200)
+
+        if not records:
+            print(f"\n{city}: sin datos suficientes.")
+            continue
+
+        stats = compute_stats(records)
+
+        print(f"\n{city}:")
+        print(f"  Temp → media: {stats['temp_mean']}°C | mediana: {stats['temp_median']}°C")
+        print(f"  Hum  → media: {stats['hum_mean']}% | mediana: {stats['hum_median']}%")
+        print(f"  Viento → media: {stats['wind_mean']} kmh | mediana: {stats['wind_median']} kmh")
+
+
+# ============================
+# LOGOS
+# ============================
+def type_effect(text, delay=0.02):
+    """Imprime texto con efecto de escritura."""
+    for char in text:
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(delay)
+    print()
+
+import itertools
+
+def loader(duration=2):
+    """Loader circular animado."""
+    spinner = itertools.cycle(['|', '/', '-', '\\'])
+    end_time = time.time() + duration
+
+    while time.time() < end_time:
+        sys.stdout.write("\rCargando " + next(spinner))
+        sys.stdout.flush()
+        time.sleep(0.1)
+
+    sys.stdout.write("\rCargando ✓\n")
+
+def show_logo():
+    logo = [
+        "           .--.",
+        "        .-(    ).",
+        "       (___.__)__)   ☁️",
+        "",
+        "██     ██ ██      ",
+        "██     ██ ██      ",
+        "██  █  ██ ██      ",
+        "██ ███ ██ ██      ",
+        " ███ ███  ███████ ",
+        "",
+        "        WEATHERLY",
+        ""
+    ]
+
+    for line in logo:
+        type_effect(line, delay=0.02)
+    time.sleep(0.5)
+def weather_loader(duration=3):
+    """Animación cíclica de iconos meteorológicos."""
+    
+    """
+    frames1 = [
+        "   .--.      \n  (    ) ☁   \n (__.__)     ",
+        "   .--.      \n  (    ) 🌧   \n (__.__)     ",
+        "   .--.      \n  ( ⚡ )      \n (__.__)     ",
+        "    \\ | /    \n  --  ☀  --   \n    / | \\     ",
+        "    ~ ~ ~     \n  🌬 viento    \n    ~ ~ ~     "
+    ]"""
+    frames = [
+        "☁️  Nube",
+        "🌧️  Lluvia",
+        "⚡  Tormenta",
+        "☀️  Sol",
+        "🌬️  Viento"
+    ]
+
+    cycle_frames = itertools.cycle(frames)
+    end_time = time.time() + duration
+    print("Cargando...")
+    while time.time() < end_time:
+        frame = next(cycle_frames)
+        sys.stdout.write("\r" + frame + "      ")
+        sys.stdout.flush()
+        time.sleep(0.4)
+
+    print("\n")
+
+weather_icons = itertools.cycle(["☀", "🌧", "⚡", "🌬", "☁"])
+
+def show_logo_small():
+    icon = next(weather_icons)
+    print(rf"""
+  .--.
+ ( {icon} )  WL
+(__.__)
+""")
+
+def show_logo_super_small():
+    icon = next(weather_icons)
+    print(rf"[ W  L ] {icon}")
+
+
+# ============================
+# COMPONENTES
+# ============================
+
 def init_components():
-    """Inicializa todas las clases y las guarda en un diccionario."""
     return {
         "api": WeatherAPIClient(),
         "storage": Storage(data_storage_path),
@@ -38,11 +216,12 @@ def init_components():
         "scheduler": Scheduler(),
     }
 
+
+# ============================
+# PROCESAMIENTO PRINCIPAL
+# ============================
+
 def fetch_and_process(components):
-    """
-    Orquesta el flujo completo para todas las ciudades.
-    Esta es la lógica que antes tenías en job_update_weather.
-    """
     api = components["api"]
     storage = components["storage"]
     validator = components["validator"]
@@ -55,19 +234,16 @@ def fetch_and_process(components):
             lat, lon = coords 
             log.info(f"Procesando {city} (lat={lat}, lon={lon})")
 
-            # 1. Obtener datos (Luis)
             data = api.get_weather_data(lat, lon)
 
             if data:
-                data['city'] = city # Inyectamos el nombre para validación y storage
+                data['city'] = city
 
-                # 2. Validar (Vanessa - Validator)
                 is_ok, errors = validator.validate_record(data)
                 if not is_ok:
                     log.error(f"Datos inválidos para {city}: {errors}")
                     continue
 
-                # 3. Alertas (Vanessa - AlertEngine)
                 triggered_alerts = alerts_engine.generate_alerts(data)
                 log.info(f"Datos recibidos en {city}: Temp={data.get('temp')}°C")
 
@@ -75,8 +251,6 @@ def fetch_and_process(components):
                     if alert["level"] != "INFO":
                         log.warning(f"¡ALERTA! [{city}] {alert['metric'].upper()}: {alert['message']}")
 
-                # 4. Guardar (Gema - Storage)
-                # Añadimos metadatos antes de guardar
                 data["date"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
                 data["source"] = "API_Weather_System"
                 
@@ -87,33 +261,151 @@ def fetch_and_process(components):
                 log.warning(f"Sin respuesta de API para {city}")
 
         except Exception as e:
-            # log.exception incluye el rastreo del error para debuggear mejor
             log.exception(f"Error inesperado procesando {city}: {e}")
 
     log.info("=== CICLO DE ACTUALIZACIÓN FINALIZADO ===")
 
-def show_menu():
+def get_last_record_by_city(storage, city):
+    """Devuelve el último registro de una ciudad."""
+    data = storage.load_data()
+    filtered = [r for r in data if r.get("city") == city]
+
+    if not filtered:
+        return None
+
+    filtered.sort(key=lambda x: x.get("date", ""), reverse=True)
+    return filtered[0]
+
+
+def show_city_summaries(storage):
+    print("\n--- Últimos registros por ciudad ---")
+
+    for city in CITY_MAP.values():
+        last = get_last_record_by_city(storage, city)
+
+        if not last:
+            print(f"{city}: sin datos")
+            continue
+
+        temp = last.get("temp", "?")
+        hum = last.get("hum", "?")
+        wind = last.get("wind", "?")
+        date = last.get("date", "?")
+
+        print(f"{city}: {temp}°C / {hum}% / {wind} kmh / {date}")
+def view_city_evolution_graph(components):
+    show_logo_super_small()
+    storage = components["storage"]
+    cities = list(CITY_MAP.values())
+
+    # 1. Selección de ciudad
+    print("\n--- EVOLUCIÓN HISTÓRICA ---")
+    for i, city in enumerate(cities, start=1):
+        print(f"{i}. {city}")
+    
+    op = input("Seleccione ciudad para ver evolución: ").strip()
+    if not op.isdigit() or not (1 <= int(op) <= len(cities)):
+        print("[!] Opción no válida.")
+        return
+
+    selected_city = cities[int(op) - 1]
+    
+    # 2. Obtener datos
+    records = storage.get_last_records_by_city(selected_city, limit=20)
+    if not records or len(records) < 2:
+        print(f"\n[!] Datos insuficientes para {selected_city}.")
+        return
+
+    records.reverse()
+
+    # 3. Preparar datos
+    times = [r["date"].split('T')[1] if 'T' in r["date"] else r["date"] for r in records]
+    temps = [r["temp"] for r in records]
+    hums = [r["hum"] for r in records]
+    winds = [r["wind"] for r in records]
+    indices = list(range(len(records)))
+
+    # 4. Configurar Subtramas (3 filas, 1 columna)
+    plt.clear_figure()
+    plt.subplots(3, 1) # Creamos la rejilla
+
+    # --- Gráfica 1: Temperatura ---
+    plt.subplot(1, 1)
+    plt.plot(indices, temps, label="Temp (°C)", color="red", marker="dot")
+    plt.title(f"Evolución en {selected_city}") # Título general arriba
+    plt.ylabel("Temp")
+    plt.xticks(indices, [""] * len(times)) # Ocultamos horas para no amontonar
+
+    # --- Gráfica 2: Humedad ---
+    plt.subplot(2, 1)
+    plt.plot(indices, hums, label="Hum (%)", color="blue", marker="dot")
+    plt.ylabel("Hum")
+    plt.xticks(indices, [""] * len(times)) # Ocultamos horas
+
+    # --- Gráfica 3: Viento ---
+    plt.subplot(3, 1)
+    plt.plot(indices, winds, label="Viento (km/h)", color="green", marker="dot")
+    plt.ylabel("Viento")
+    plt.xlabel("Hora del registro")
+    plt.xticks(indices, times) # Mostramos las horas solo en la gráfica de abajo
+
+    # Ajustes finales para todas
+    plt.theme("dark")
+    plt.show()
+# ============================
+# MENÚS
+# ============================
+
+def show_menu(storage):
+    show_logo_small()
+    show_city_summaries(storage)
     print("\n" + "="*25)
     print("   WEATHER DASHBOARD")
     print("="*25)
     print("1. Actualizar ciudades ahora")
-    print("2. Ver último registro guardado")
+    print("2. Ver últimos registros por ciudad")
     print("3. Configurar automatización")
-    print("4. Salir")
+    print("4. Ver estadísticas por ciudad")
+    print("5. Ver graficos por ciudad")
+    print("6. Ver graficos de ciudad")
+    print("7. Salir")
+
 
 def view_last(components):
+    show_logo_super_small()
+    type_effect("Cargando registros...", 0.02)
     storage = components["storage"]
-    last = storage.get_last_record()
 
-    if not last:
-        print("\n[!] No hay datos en weather.json.")
+    cities = list(CITY_MAP.values())
+
+    print("\n--- SELECCIONAR CIUDAD ---")
+    for i, city in enumerate(cities, start=1):
+        print(f"{i}. {city}")
+
+    op = input("Seleccione ciudad: ").strip()
+
+    if not op.isdigit() or not (1 <= int(op) <= len(cities)):
+        print("[!] Opción no válida.")
         return
 
-    print("\n--- ÚLTIMO REGISTRO ENCONTRADO ---")
-    for key, value in last.items():
-        print(f"{key.capitalize()}: {value}")
+    selected_city = cities[int(op) - 1]
+
+    records = storage.get_last_records_by_city(selected_city, limit=10)
+
+    if not records:
+        print(f"\n[!] No hay registros para {selected_city}.")
+        return
+
+    print(f"\n--- ÚLTIMOS REGISTROS DE {selected_city} ---")
+    for idx, record in enumerate(records, start=1):
+        print(f"\n[{idx}] ----------------------")
+        for key, value in record.items():
+            print(f"{key.capitalize()}: {value}")
+
 
 def setup_scheduler(components):
+    show_logo_super_small()
+    type_effect("Configurando automatización...", 0.02)
     scheduler = components["scheduler"]
 
     print("\n--- CONFIGURACIÓN DE AUTOMATIZACIÓN ---")
@@ -135,13 +427,20 @@ def setup_scheduler(components):
     else:
         print("[!] Opción no válida.")
 
+
+# ============================
+# MAIN
+# ============================
+
 def main():
     components = init_components()
     log.info("Aplicación iniciada. Menú interactivo listo.")
 
+    #loader(2)
+    weather_loader(3)
     try:
         while True:
-            show_menu()
+            show_menu(components["storage"])
             op = input(">> ").strip()
 
             if op == "1":
@@ -151,6 +450,12 @@ def main():
             elif op == "3":
                 setup_scheduler(components)
             elif op == "4":
+                view_stats(components)
+            elif op == "5":
+                view_stats_graph(components)
+            elif op == "6":
+                view_city_evolution_graph(components)   
+            elif op == "7":
                 log.info("Cerrando aplicación...")
                 components["scheduler"].shutdown()
                 break
@@ -161,5 +466,7 @@ def main():
         log.info("Interrupción detectada. Apagando sistema...")
         components["scheduler"].shutdown()
 
+
 if __name__ == "__main__":
+    show_logo()
     main()

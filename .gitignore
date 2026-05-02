@@ -1,6 +1,22 @@
 venv/
 __pycache__/
 .env
-# No subir datos del proyecto
+
+__pycache__/
+*.pyc
+
+# Logs
+logs/
+*.log
+
+# Ignorar TODOS los JSON de datos
 data/*.json
-!data/.gitkeep
+
+# PERMITIR SOLO los ejemplos (IMPORTANTE: va después)
+!data/*.example.json
+
+
+# Sistema / editor
+.vscode/
+.DS_Store
+Thumbs.db
