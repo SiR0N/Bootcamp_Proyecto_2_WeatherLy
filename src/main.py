@@ -306,7 +306,7 @@ def fetch_and_process(components):
                        log.error(f"Datos manuales inválidos para {city}: {errors}")
                        continue
                    manual_data["date"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
-                   manual_data["source"] = "Manual_Input"
+                   manual_data["source"] = "Console"
                    
                    result = storage.add_record(manual_data)
                    log.info(f"Guardado manual exitoso para {city}: {result}")
