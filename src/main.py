@@ -15,6 +15,8 @@ import time
 import sys
 import os
 
+import login
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
 PROJECT_ROOT = os.path.dirname(BASE_DIR)               
 
@@ -27,6 +29,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 data_storage_path = os.path.join(DATA_DIR, "weather.json")
 alerts_storage_path = os.path.join(DATA_DIR, "alerts.json")
 log_storage_path = os.path.join(LOGS_DIR, "app.log") 
+users_storage_path = os.path.join(DATA_DIR, "usuarios.json")
 
 log = setup_logging(log_storage_path)
 
@@ -213,7 +216,7 @@ def init_components():
         "api": WeatherAPIClient(),
         "storage": Storage(data_storage_path),
         "alerts_storage": Storage(alerts_storage_path),
-
+        "users_storage": Storage(users_storage_path),
         "validator": WeatherValidator(),
         "alerts": AlertEngine(),
         "scheduler": Scheduler(),
@@ -529,7 +532,10 @@ def main():
     components = init_components()
     log.info("Aplicación iniciada. Menú interactivo listo.")
 
-    #loader(2)
+    if not login.menu_autenticacion(components["users_storage"]):
+        print("\nSaliendo del sistema. ¡Hasta pronto!")
+        return # Finaliza el programa si no se loguea
+    
     weather_loader(3)
     try:
         while True:
