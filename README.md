@@ -169,7 +169,7 @@ API → Normalización → Validación → Alertas → Almacenamiento → Visual
 ## 🚀 Instalación y ejecución
 
 ```bash
-git clone TU_REPO
+git clone https://github.com/SiR0N/Bootcamp_Proyecto_2_WeatherLy.git
 cd Bootcamp_Proyecto_2_WeatherLy
 
 python -m venv venv
