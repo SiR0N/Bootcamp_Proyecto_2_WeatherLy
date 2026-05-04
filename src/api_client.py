@@ -29,8 +29,19 @@ class WeatherAPIClient:
 
         try:
             response = requests.get(self.base_url, params=params, timeout=10)
-            response.raise_for_status()
             
+            if response.status_code == 400:
+                log.error("Error 400: Bad Request")
+                return self.get_error_fallback(lat, lon)
+        
+            elif response.status_code == 404:
+                log.error("Error 404: Not Found")
+                return self.get_error_fallback(lat, lon)
+
+            elif response.status_code >= 500:
+                log.error(f"Error {response.status_code}: Server Error")
+                return self.get_error_fallback(lat, lon)
+        
             raw_data = response.json()
             log.debug(f"Respuesta cruda de la API: {raw_data}")
 
@@ -39,9 +50,6 @@ class WeatherAPIClient:
 
             return normalized
 
-        except requests.exceptions.HTTPError as e:
-            log.error(f"Error HTTP al llamar a la API: {e}")
-            return self.get_error_fallback(lat, lon)
 
         except requests.exceptions.Timeout:
             log.error("Timeout al llamar a la API")
