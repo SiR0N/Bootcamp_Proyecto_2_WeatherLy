@@ -420,7 +420,9 @@ def show_menu(storage):
     print("4. Ver estadísticas por ciudad")
     print("5. Ver graficos por ciudad")
     print("6. Ver graficos de ciudad")
-    print("7. Salir")
+    print("7. Mostrar alertas")
+    print("8. Salir")
+
 def view_last(components):
     show_logo_super_small()
     type_effect("Cargando registros...", 0.02)
@@ -539,8 +541,10 @@ def main():
             elif op == "5":
                 view_stats_graph(components)
             elif op == "6":
-                view_city_evolution_graph(components)   
+                view_city_evolution_graph(components)
             elif op == "7":
+                view_alerts(components)   
+            elif op == "8":
                 log.info("Cerrando aplicación...")
                 components["scheduler"].shutdown()
                 break
