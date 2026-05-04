@@ -219,6 +219,25 @@ def init_components():
         "scheduler": Scheduler(),
     }
 
+def get_manual_input(city):
+    """Permite introducir datos manualmente si la API falla."""
+    print(f"\n[!] CONTROL MANUAL PARA: {city.upper()}")
+    try:
+        temp = float(input(f"  > Temperatura en {city} (°C): "))
+        hum = int(input(f"  > Humedad en {city} (%): "))
+        wind = float(input(f"  > Velocidad del viento (km/h): "))
+        
+        return {
+            "date": datetime.now().strftime("%Y-%m-%dT%H:%M"),
+            "city": city,
+            "temp": temp,
+            "hum": hum,
+            "wind": wind,
+            "source": "Console"
+        }
+    except ValueError:
+        print("\n[!] Error: Solo se admiten números. Se aborta la entrada manual.")
+        return None
 
 # ============================
 # PROCESAMIENTO PRINCIPAL
@@ -239,7 +258,6 @@ def fetch_and_process(components):
             log.info(f"Procesando {city} (lat={lat}, lon={lon})")
 
             data = api.get_weather_data(lat, lon)
-
             if data:
                 data['city'] = city
 
@@ -279,7 +297,21 @@ def fetch_and_process(components):
 
             else:
                 log.warning(f"Sin respuesta de API para {city}")
-
+                manual_data = get_manual_input(city)
+                
+                if manual_data:
+                   is_ok, errors = validator.validate_record(manual_data)
+                   
+                   if not is_ok:
+                       log.error(f"Datos manuales inválidos para {city}: {errors}")
+                       continue
+                   manual_data["date"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
+                   manual_data["source"] = "Console"
+                   
+                   result = storage.add_record(manual_data)
+                   log.info(f"Guardado manual exitoso para {city}: {result}")
+                   
+                    
         except Exception as e:
             log.exception(f"Error inesperado procesando {city}: {e}")
 
