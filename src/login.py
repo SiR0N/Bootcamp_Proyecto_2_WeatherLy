@@ -1,28 +1,52 @@
 import hashlib
 import getpass
 import logging
-from json_db import JsonDB
+from storage import Storage
 
 log = logging.getLogger(__name__)
 
 # Definimos la ruta del archivo JSON que almacena los usuarios
-ARCHIVO_USUARIOS = "data/usuarios.json"
+ARCHIVO_USUARIOS = "usuarios.json"
 
-# Base de datos de usuarios en disco
-usuarios_db = JsonDB(ARCHIVO_USUARIOS, default={})
+# Inicializamos el storage para la base de datos de usuarios
+usuarios_storage = Storage(ARCHIVO_USUARIOS)
 
 def hash_password(password):
     """Encripta la contraseña utilizando el algoritmo SHA-256."""
     return hashlib.sha256(password.encode()).hexdigest()
 
+def cargar_usuarios():
+    """Carga los usuarios desde el archivo JSON utilizando Storage."""
+    try:
+        data = usuarios_storage.load_data()
+        if isinstance(data, list):
+            # Adaptamos por si hay una lista de diccionarios
+            usuarios = {}
+            for d in data:
+                if isinstance(d, dict):
+                    usuarios.update(d)
+            return usuarios
+        elif isinstance(data, dict):
+            return data
+        return {}
+    except Exception:
+        return {}
+
+def guardar_usuarios(usuarios):
+    """Guarda los usuarios en el archivo JSON utilizando Storage."""
+    usuarios_storage.save_data(usuarios)
+
 def registrar_interno(usuario, password):
     """Lógica de registro de usuario."""
-    if usuarios_db.exists(usuario):
+    usuarios = cargar_usuarios()
+    
+    if usuario in usuarios:
         log.warning(f"Intento de registro fallido: el usuario '{usuario}' ya existe.")
         return False
 
-    # Guardamos la contraseña encriptada en la base de datos
-    usuarios_db.set(usuario, hash_password(password))
+    # Guardamos la contraseña encriptada
+    usuarios[usuario] = hash_password(password)
+    guardar_usuarios(usuarios)
     log.info(f"Usuario {usuario} registrado correctamente.")
     return True
 
@@ -41,12 +65,14 @@ def registrar():
 
 def login_interno(usuario, password):
     """Lógica interna de verificación de login."""
-    if not usuarios_db.exists(usuario):
+    usuarios = cargar_usuarios()
+    
+    if usuario not in usuarios:
         log.warning(f"Intento de login fallido: el usuario '{usuario}' no existe.")
         return False
 
     # Comparamos el hash de la contraseña ingresada con el hash guardado
-    return usuarios_db.get(usuario) == hash_password(password)
+    return usuarios[usuario] == hash_password(password)
 
 def login():
     """Interacción con el usuario por consola para login."""
@@ -80,7 +106,7 @@ def menu():
             log.info("Saliendo de la aplicación.")
             break
         else:
-            print("Opción no válida. Inténtalo de nuevo.")
+            print("Opción no válida, intente de nuevo.")
 
 if __name__ == "__main__":
     menu()

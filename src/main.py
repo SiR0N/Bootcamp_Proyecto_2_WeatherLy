@@ -410,56 +410,6 @@ def view_city_evolution_graph(components):
 # MENÚS
 # ============================
 
-# ============================
-# MENÚ PRINCIPAL
-# ============================
-
-def show_menu():
-    print("\n" + "="*25)
-    print("   WEATHER DASHBOARD")
-    print("="*25)
-    print("1. Actualizar ciudades ahora")
-    print("2. Ver estadísticas")
-    print("3. Configurar automatización")
-    print("4. Salir")
-    
-def main():
-    show_logo()
-    
-    # --- BLOQUEO DE SEGURIDAD ---
-    print("\n[!] Acceso Restringido.")
-    try:
-        # Llamamos a la función menu() de tu archivo login.py
-        acceso = login.menu() 
-        if not acceso:
-            print("Saliendo del sistema...")
-            return
-    except Exception as e:
-        print(f"Error al cargar el sistema de login: {e}")
-        return
-
-    # Si el login es correcto, inicializamos todo
-    log.info("Usuario autenticado correctamente.")
-    components = init_components()
-    weather_loader(2)
-
-    while True:
-        show_menu()
-        op = input(">> ").strip()
-
-        if op == "1":
-            fetch_and_process(components)
-        elif op == "2":
-            view_stats(components)
-        elif op == "3":
-            print("Función de scheduler en desarrollo...")
-        elif op == "4":
-            components["scheduler"].shutdown()
-            print("¡Hasta pronto!")
-            break
-        else:
-            print("Opción inválida.")
-
 
 def show_menu(storage):
     show_logo_small()
