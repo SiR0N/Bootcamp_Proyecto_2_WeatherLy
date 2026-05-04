@@ -236,3 +236,14 @@
 2026-04-30 15:55:04,601 - root - INFO - Guardado exitoso para Cuenca: Record saved successfully.
 2026-04-30 15:55:04,601 - root - INFO - === CICLO DE ACTUALIZACIÃ“N FINALIZADO ===
 2026-04-30 15:55:18,541 - storage - INFO - 25 registros cargados desde weather.json.
+2026-05-02 23:32:36,275 - storage - INFO - Archivo creado automáticamente: C:\Users\mdura\Desktop\Proyecto 2\Bootcamp_Proyecto_2_WeatherLy\data\weather.json
+2026-05-02 23:32:36,278 - storage - INFO - Archivo creado automáticamente: C:\Users\mdura\Desktop\Proyecto 2\Bootcamp_Proyecto_2_WeatherLy\data\alerts.json
+2026-05-02 23:32:36,312 - apscheduler.scheduler - INFO - Scheduler started
+2026-05-02 23:32:36,321 - root - INFO - Aplicación iniciada. Menú interactivo listo.
+2026-05-02 23:32:39,670 - storage - INFO - 0 registros cargados desde C:\Users\mdura\Desktop\Proyecto 2\Bootcamp_Proyecto_2_WeatherLy\data\weather.json.
+2026-05-02 23:32:39,678 - storage - INFO - 0 registros cargados desde C:\Users\mdura\Desktop\Proyecto 2\Bootcamp_Proyecto_2_WeatherLy\data\weather.json.
+2026-05-02 23:32:39,704 - storage - INFO - 0 registros cargados desde C:\Users\mdura\Desktop\Proyecto 2\Bootcamp_Proyecto_2_WeatherLy\data\weather.json.
+2026-05-02 23:32:39,718 - storage - INFO - 0 registros cargados desde C:\Users\mdura\Desktop\Proyecto 2\Bootcamp_Proyecto_2_WeatherLy\data\weather.json.
+2026-05-02 23:32:39,875 - storage - INFO - 0 registros cargados desde C:\Users\mdura\Desktop\Proyecto 2\Bootcamp_Proyecto_2_WeatherLy\data\weather.json.
+2026-05-03 00:05:10,580 - root - INFO - Interrupción detectada. Apagando sistema...
+2026-05-03 00:05:10,608 - apscheduler.scheduler - INFO - Scheduler has been shut down
