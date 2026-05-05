@@ -9,11 +9,14 @@ __pycache__/
 logs/
 *.log
 
-# Ignorar TODOS los JSON de datos
+# Ignorar datos reales
 data/*.json
 
 # PERMITIR SOLO los ejemplos 
 !data/*.example.json
+
+# Ignorar backups 
+data/backups/
 
 
 # Sistema / editor

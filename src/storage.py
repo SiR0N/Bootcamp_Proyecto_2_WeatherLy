@@ -32,6 +32,81 @@ class Storage:
             except Exception as e:
                 log.error(f"Error al crear el archivo: {e}")
 
+
+    def create_backup(self):
+        """
+        Crea una copia de seguridad con fecha en la carpeta de backups
+        """
+        if not os.path.exists(self.file_path):
+            return
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        # Obtener nombre base del archivo (weather o alerts)
+        file_name = os.path.basename(self.file_path)          # weather.json
+        name = os.path.splitext(file_name)[0]                 # weather
+
+        # Crear ruta de backups
+        backup_dir = os.path.join(
+            os.path.dirname(self.file_path),
+            "backups",
+            name
+        )
+
+        # Crear carpeta si no existe
+        os.makedirs(backup_dir, exist_ok=True)
+
+        # Ruta final del backup
+        backup_path = os.path.join(
+            backup_dir,
+            f"{name}_{timestamp}.json"
+    )
+
+        shutil.copy(self.file_path, backup_path)
+
+        log.info(f"Backup creado: {backup_path}")
+
+    def clean_old_backups(self, max_backups=5):
+        """
+        Mantiene solo los últimos N backups y borra los antiguos.
+        """
+
+        # Obtener nombre base (weather o alerts)
+        file_name = os.path.basename(self.file_path)
+        name = os.path.splitext(file_name)[0]
+
+        # Ruta correcta de backups
+        folder = os.path.join(
+            os.path.dirname(self.file_path),
+            "backups",
+            name
+        )
+
+        # Si no existe la carpeta, salir
+        if not os.path.exists(folder):
+            return
+
+        # Obtener archivos backup
+        files = [
+            f for f in os.listdir(folder)
+            if f.startswith(f"{name}_") and f.endswith(".json")
+        ]
+
+        # Ordenar (por nombre → incluye fecha)
+        files.sort()
+
+         # Si hay más de los permitidos → borrar los antiguos
+        if len(files) > max_backups:
+            to_delete = files[:len(files) - max_backups]
+
+            for f in to_delete:
+                path = os.path.join(folder, f)
+                os.remove(path)
+                log.info(f"Backup antiguo eliminado: {path}")
+    
+    
+
+
     def load_data(self):
         if not os.path.exists(self.file_path):
             return [] if self.default_type is list else {}
@@ -48,9 +123,10 @@ class Storage:
         try:
             if not self.backup_created and os.path.exists(self.file_path):
                 self.create_backup()
-                self.clean_old_backups()
                 self.backup_created = True
+                self.clean_old_backups()
 
+             
             with open(self.file_path, "w", encoding="utf-8") as file:
                 json.dump(data, file, indent=4, ensure_ascii=False)
         except Exception as e:
@@ -83,22 +159,3 @@ class Storage:
         return filtered[:limit]
 
 
-    def create_backup(self):
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        nombre_base, extension = os.path.splitext(self.file_path)
-        backup_path = f"{nombre_base}_{timestamp}{extension}"
-        try:
-            shutil.copy(self.file_path, backup_path)
-        except Exception:
-            pass
-
-    def clean_old_backups(self, max_backups=5):
-        folder = os.path.dirname(self.file_path) or "."
-        nombre_base = os.path.basename(self.file_path).replace(".json", "")
-        files = sorted([
-            f for f in os.listdir(folder)
-            if f.startswith(nombre_base) and f.endswith(".json") and f != os.path.basename(self.file_path)
-        ])
-        if len(files) > max_backups:
-            for f in files[:-max_backups]:
-                os.remove(os.path.join(folder, f))
