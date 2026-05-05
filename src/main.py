@@ -276,10 +276,10 @@ def fetch_and_process(components):
                 log.info(f"Datos recibidos en {city}: Temp={data.get('temp')}°C")
 
                 for alert in triggered_alerts:
-                    if alert["level"] != "INFO":
-                        log.warning(f"¡ALERTA! [{city}] {alert['metric'].upper()}: {alert['message']}")
-
-
+                    if alert["level"] == "INFO":
+                        continue
+                    
+                    log.warning(f"¡ALERTA! [{city}] {alert['metric'].upper()}: {alert['message']}")
 
                     alert_record = {
                         "date": datetime.now().strftime("%Y-%m-%dT%H:%M"),
