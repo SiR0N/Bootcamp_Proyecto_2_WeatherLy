@@ -1,4 +1,3 @@
-from importlib.metadata import files
 import json
 import os
 import logging
@@ -30,17 +29,32 @@ class Storage:
 
     def create_backup(self):
         """
-        Crea una copia de seguridad con fecha.
+        Crea una copia de seguridad con fecha en la carpeta de backups
         """
         if not os.path.exists(self.file_path):
             return
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        backup_path = self.file_path.replace(
-            ".json",
-            f"_{timestamp}.json"
+        # Obtener nombre base del archivo (weather o alerts)
+        file_name = os.path.basename(self.file_path)          # weather.json
+        name = os.path.splitext(file_name)[0]                 # weather
+
+        # Crear ruta de backups
+        backup_dir = os.path.join(
+            os.path.dirname(self.file_path),
+            "backups",
+            name
         )
+
+        # Crear carpeta si no existe
+        os.makedirs(backup_dir, exist_ok=True)
+
+        # Ruta final del backup
+        backup_path = os.path.join(
+            backup_dir,
+            f"{name}_{timestamp}.json"
+    )
 
         shutil.copy(self.file_path, backup_path)
 
@@ -50,25 +64,39 @@ class Storage:
         """
         Mantiene solo los últimos N backups y borra los antiguos.
         """
-        folder = os.path.dirname(self.file_path)
+
+        # Obtener nombre base (weather o alerts)
+        file_name = os.path.basename(self.file_path)
+        name = os.path.splitext(file_name)[0]
+
+        # Ruta correcta de backups
+        folder = os.path.join(
+            os.path.dirname(self.file_path),
+            "backups",
+            name
+        )
+
+        # Si no existe la carpeta, salir
+        if not os.path.exists(folder):
+            return
 
         # Obtener archivos backup
         files = [
             f for f in os.listdir(folder)
-            if f.startswith("weather_") and f.endswith(".json")
+            if f.startswith(f"{name}_") and f.endswith(".json")
         ]
 
-        # Ordenarlos por nombre (ya incluye fecha)
+        # Ordenar (por nombre → incluye fecha)
         files.sort()
 
-        # Si hay más de los permitidos → borrar los más antiguos
+         # Si hay más de los permitidos → borrar los antiguos
         if len(files) > max_backups:
             to_delete = files[:len(files) - max_backups]
 
             for f in to_delete:
                 path = os.path.join(folder, f)
                 os.remove(path)
-                log.info(f"Backup antiguo eliminado: {path}")   
+                log.info(f"Backup antiguo eliminado: {path}")
     
     
     def load_data(self):
@@ -104,8 +132,8 @@ class Storage:
             #Hacer Backup antes de sobrescribir. Crear solo 1 backup por ejecución para evitar demasiados archivos. Solo si el archivo ya existe (no tiene sentido hacer backup de un archivo vacío).
             if not self.backup_created and os.path.exists(self.file_path):
                 self.create_backup()
-                self.clean_old_backups() 
                 self.backup_created = True
+                self.clean_old_backups() 
 
              #  Asegurar archivo antes de guardar
             self.ensure_file_exists()
