@@ -547,7 +547,7 @@ def main():
             elif op == "2":
                 view_last(components)
             elif op == "3":
-                view_alerts(components)
+                setup_scheduler(components)
             elif op == "4":
                 view_stats(components)
             elif op == "5":
