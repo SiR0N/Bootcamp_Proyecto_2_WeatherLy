@@ -15,6 +15,8 @@ import time
 import sys
 import os
 
+import login
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
 PROJECT_ROOT = os.path.dirname(BASE_DIR)               
 
@@ -27,6 +29,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 data_storage_path = os.path.join(DATA_DIR, "weather.json")
 alerts_storage_path = os.path.join(DATA_DIR, "alerts.json")
 log_storage_path = os.path.join(LOGS_DIR, "app.log") 
+users_storage_path = os.path.join(DATA_DIR, "usuarios.json")
 
 log = setup_logging(log_storage_path)
 
@@ -213,31 +216,34 @@ def init_components():
         "api": WeatherAPIClient(),
         "storage": Storage(data_storage_path),
         "alerts_storage": Storage(alerts_storage_path),
-
+        "users_storage": Storage(users_storage_path),
         "validator": WeatherValidator(),
         "alerts": AlertEngine(),
         "scheduler": Scheduler(),
     }
 
 def get_manual_input(city):
-    """Permite introducir datos manualmente si la API falla."""
+    """Permite introducir datos manualmente con reintento si hay error de formato."""
     print(f"\n[!] CONTROL MANUAL PARA: {city.upper()}")
-    try:
-        temp = float(input(f"  > Temperatura en {city} (°C): "))
-        hum = int(input(f"  > Humedad en {city} (%): "))
-        wind = float(input(f"  > Velocidad del viento (km/h): "))
-        
-        return {
-            "date": datetime.now().strftime("%Y-%m-%dT%H:%M"),
-            "city": city,
-            "temp": temp,
-            "hum": hum,
-            "wind": wind,
-            "source": "Console"
-        }
-    except ValueError:
-        print("\n[!] Error: Solo se admiten números. Se aborta la entrada manual.")
-        return None
+    
+    while True:
+        try:
+            temp = float(input(f"  > Temperatura en {city} (°C): "))
+            hum = int(input(f"  > Humedad en {city} (%): "))
+            wind = float(input(f"  > Velocidad del viento (km/h): "))
+            
+            return {
+                "date": datetime.now().strftime("%Y-%m-%dT%H:%M"),
+                "city": city,
+                "temp": temp,
+                "hum": hum,
+                "wind": wind,
+                "source": "Console"
+            }
+        except ValueError:
+            print("\n[!] Error: Solo se admiten números. Inténtalo de nuevo.")
+            if input("¿Quieres cancelar y saltar esta ciudad? (s/n): ").lower() == 's':
+                return None
 
 # ============================
 # PROCESAMIENTO PRINCIPAL
@@ -297,19 +303,22 @@ def fetch_and_process(components):
 
             else:
                 log.warning(f"Sin respuesta de API para {city}")
-                manual_data = get_manual_input(city)
                 
-                if manual_data:
-                   is_ok, errors = validator.validate_record(manual_data)
-                   
-                   if not is_ok:
-                       log.error(f"Datos manuales inválidos para {city}: {errors}")
-                       continue
-                   manual_data["date"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
-                   manual_data["source"] = "Console"
-                   
-                   result = storage.add_record(manual_data)
-                   log.info(f"Guardado manual exitoso para {city}: {result}")
+                while True:
+                    manual_data = get_manual_input(city)
+                    
+                    if not manual_data:
+                        break
+                        
+                    is_ok, errors = validator.validate_record(manual_data)
+                    
+                    if is_ok:
+                        result = storage.add_record(manual_data)
+                        log.info(f"Guardado manual exitoso para {city}: {result}")
+                        break
+                    else:
+                        print(f"\n[!] Datos fuera de rango: {errors}")
+                        print("Por favor, introduce valores lógicos.")    
                    
                     
         except Exception as e:
@@ -420,7 +429,9 @@ def show_menu(storage):
     print("4. Ver estadísticas por ciudad")
     print("5. Ver graficos por ciudad")
     print("6. Ver graficos de ciudad")
-    print("7. Salir")
+    print("7. Mostrar alertas")
+    print("8. Salir")
+
 def view_last(components):
     show_logo_super_small()
     type_effect("Cargando registros...", 0.02)
@@ -521,7 +532,10 @@ def main():
     components = init_components()
     log.info("Aplicación iniciada. Menú interactivo listo.")
 
-    #loader(2)
+    if not login.menu_autenticacion(components["users_storage"]):
+        print("\nSaliendo del sistema. ¡Hasta pronto!")
+        return # Finaliza el programa si no se loguea
+    
     weather_loader(3)
     try:
         while True:
@@ -539,8 +553,10 @@ def main():
             elif op == "5":
                 view_stats_graph(components)
             elif op == "6":
-                view_city_evolution_graph(components)   
+                view_city_evolution_graph(components)
             elif op == "7":
+                view_alerts(components)   
+            elif op == "8":
                 log.info("Cerrando aplicación...")
                 components["scheduler"].shutdown()
                 break

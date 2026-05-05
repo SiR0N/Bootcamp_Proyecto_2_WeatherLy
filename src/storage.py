@@ -4,28 +4,34 @@ import logging
 import shutil
 from datetime import datetime
 
-log = logging.getLogger(__name__)   # Logger del módulo
+log = logging.getLogger(__name__)
 
 class Storage:
-    def __init__(self, file_path):
+    def __init__(self, file_path, default_type=list):
+        """
+        :param file_path: Ruta al archivo JSON.
+        :param default_type: list o dict (tipo de dato inicial si el archivo no existe).
+        """
         self.file_path = file_path
-        self.ensure_file_exists()
+        self.default_type = default_type
         self.backup_created = False
+        self.ensure_file_exists()
 
     def ensure_file_exists(self):
-        """Asegura que el archivo JSON exista."""
-
         folder = os.path.dirname(self.file_path)
-
-        # Solo crear carpeta si existe nombre de carpeta
         if folder and not os.path.exists(folder):
             os.makedirs(folder, exist_ok=True)
 
         if not os.path.exists(self.file_path):
-            with open(self.file_path, "w", encoding="utf-8") as file:
-                json.dump([], file, indent=4, ensure_ascii=False)
+            try:
+                with open(self.file_path, "w", encoding="utf-8") as file:
+                    # Inicializa según el tipo ( [] para lista, {} para diccionario )
+                    initial_data = [] if self.default_type is list else {}
+                    json.dump(initial_data, file, indent=4, ensure_ascii=False)
+                log.info(f"Archivo creado: {self.file_path}")
+            except Exception as e:
+                log.error(f"Error al crear el archivo: {e}")
 
-            log.info(f"Archivo creado automáticamente: {self.file_path}")
 
     def create_backup(self):
         """
@@ -99,101 +105,57 @@ class Storage:
                 log.info(f"Backup antiguo eliminado: {path}")
     
     
+
+
     def load_data(self):
-        """Lee el archivo JSON y devuelve la lista de registros."""
         if not os.path.exists(self.file_path):
-            log.warning(f"Archivo {self.file_path} no encontrado. Devolviendo lista vacía.")
-            return []
+            return [] if self.default_type is list else {}
 
         try:
             with open(self.file_path, "r", encoding="utf-8") as file:
-                data = json.load(file)
-
-            if isinstance(data, list):
-                log.info(f"{len(data)} registros cargados desde {self.file_path}.")
-                return data
-            else:
-                log.error(f"Formato inválido en {self.file_path}. Se esperaba una lista.")
-                return []
-
-        except json.JSONDecodeError:
-            log.error(f"JSON mal formado en {self.file_path}.")
-            return []
-
-        except Exception as e:
-            log.exception(f"Error inesperado al leer {self.file_path}: {e}")
-            return []
-
+                return json.load(file)
+        except (json.JSONDecodeError, Exception) as e:
+            log.error(f"Error al cargar {self.file_path}: {e}")
+            return [] if self.default_type is list else {}
 
     def save_data(self, data):
-        """Guarda la lista completa de registros en el archivo JSON."""
+        """Guarda datos y gestiona un único backup por sesión."""
         try:
-            
-            #Hacer Backup antes de sobrescribir. Crear solo 1 backup por ejecución para evitar demasiados archivos. Solo si el archivo ya existe (no tiene sentido hacer backup de un archivo vacío).
             if not self.backup_created and os.path.exists(self.file_path):
                 self.create_backup()
                 self.backup_created = True
-                self.clean_old_backups() 
+                self.clean_old_backups()
 
-             #  Asegurar archivo antes de guardar
-            self.ensure_file_exists()
-
-            #Guardar datos nuevos
+             
             with open(self.file_path, "w", encoding="utf-8") as file:
                 json.dump(data, file, indent=4, ensure_ascii=False)
-
-            log.info(f"Datos guardados correctamente en {self.file_path}. Total registros: {len(data)}")
-
         except Exception as e:
-            log.exception(f"Error guardando datos en {self.file_path}: {e}")
+            log.error(f"Error al guardar en {self.file_path}: {e}")
 
-
-    def is_duplicate(self, new_record, existing_data):
-        """
-        Comprueba si un registro es duplicado por date + city.
-        """
-        for record in existing_data:
-            if record["date"] == new_record["date"] and record["city"] == new_record["city"]:
-                log.warning(f"Registro duplicado detectado: {new_record}")
-                return True
-
-        return False
-
+    # --- Métodos para Listas (Historial de Clima) ---
 
     def add_record(self, new_record):
-        """
-        Añade un registro si no es duplicado.
-        """
+        """Añade un registro a una lista si no es idéntico al último."""
         data = self.load_data()
+        if not isinstance(data, list):
+            log.error("Intentando usar add_record en un archivo que no es una lista.")
+            return False
 
-        if self.is_duplicate(new_record, data):
-            log.info("Registro no guardado por duplicado.")
-            return "Duplicate record. Not saved."
+        # Verificación básica de duplicados (evita guardar lo mismo dos veces seguidas)
+        if data and data[-1] == new_record:
+            return "Duplicate"
 
         data.append(new_record)
         self.save_data(data)
+        return "Success"
 
-        log.info(f"Nuevo registro añadido: {new_record}")
-        return "Record saved successfully."
-
-    def get_last_record(self):
-        """Devuelve el último registro guardado o None si está vacío."""
-        data = self.load_data()
-        if data:
-            return data[-1]  # Retorna el último elemento de la lista
-        return None
-    
     def get_last_records_by_city(self, city, limit=10):
-        """Devuelve los últimos N registros de una ciudad."""
         data = self.load_data()
-
-        # Filtrar por ciudad
+        if not isinstance(data, list): return []
+        
         filtered = [r for r in data if r.get("city") == city]
-
-        # Ordenar por fecha (YYYY-MM-DDTHH:MM)
+        # Ordenar por fecha si existe el campo
         filtered.sort(key=lambda x: x.get("date", ""), reverse=True)
-
         return filtered[:limit]
-
 
 
