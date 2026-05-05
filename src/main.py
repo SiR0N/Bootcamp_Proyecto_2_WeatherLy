@@ -216,7 +216,7 @@ def init_components():
         "api": WeatherAPIClient(),
         "storage": Storage(data_storage_path),
         "alerts_storage": Storage(alerts_storage_path),
-        "users_storage": Storage(users_storage_path),
+        "users_storage": Storage(users_storage_path, default_type=dict),
         "validator": WeatherValidator(),
         "alerts": AlertEngine(),
         "scheduler": Scheduler(),
