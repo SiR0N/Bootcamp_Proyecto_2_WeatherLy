@@ -5,7 +5,7 @@
 <h1 align="center">🌦️ Weatherly</h1>
 
 <p align="center">
-  <b>Sistema Inteligente de Monitorización Climática</b>
+  <b>Sistema Inteligente de Monitorización Climática con Autenticación de Usuarios</b>
 </p>
 
 <p align="center">
@@ -79,6 +79,12 @@ Construir una base sólida de procesamiento de datos que integre API, validació
 - 📝 **Logging profesional**  
   Registra eventos, errores y operaciones del sistema para facilitar debugging y trazabilidad.
 
+- 🔐 **Autenticación de usuarios**  
+  Registro y login por terminal con contraseñas hasheadas (SHA-256). Las credenciales se almacenan de forma segura en un diccionario JSON.
+
+- 💾 **Backups automáticos**  
+  Crea copias de seguridad con marca de tiempo en cada sesión, conservando solo los últimos 5 backups.
+
 - 🧪 **Tests con pytest**  
   Incluye pruebas automatizadas para garantizar el correcto funcionamiento del sistema.
 
@@ -98,10 +104,13 @@ Bootcamp_Proyecto_2_WeatherLy/
 │  ├─ scheduler.py     ⏱️ Automatización
 │  ├─ logger_config.py 📝 Logs
 │  ├─ cities.py        🏙️ Ciudades
+│  ├─ login.py          🔐 Autenticación de usuarios
 │
 ├─ data/               📂 Datos
 ├─ logs/               📜 Logs
 ├─ tests/              🧪 Tests
+
+```
 
 ---
 
@@ -129,6 +138,11 @@ Genera alertas automáticas según condiciones climáticas.
 
 ### ⏱️ scheduler.py
 Permite ejecutar tareas automáticamente cada X minutos.
+
+### 🔐 login.py
+- Registro y login de usuarios por terminal
+- Contraseñas hasheadas con SHA-256
+- Usuarios almacenados como diccionario en `usuarios.json`
 
 ### 📝 logger_config.py
 Gestiona los logs del sistema (errores, eventos, etc.)
@@ -164,6 +178,27 @@ API → Normalización → Validación → Alertas → Almacenamiento → Visual
 
 6. **📊 Visualización y análisis**  
    Se muestran estadísticas y gráficos en terminal para interpretar la información.
+
+
+## 🔐 Flujo de autenticación
+
+```text
+Inicio → Registro / Login → Menú principal
+```
+
+### 🔎 Descripción del flujo
+
+1. **🔐 Autenticación**  
+   Al arrancar la aplicación, el sistema solicita al usuario registrarse o iniciar sesión antes de acceder al menú principal.
+
+2. **📝 Registro**  
+   El usuario introduce un nombre y contraseña. La contraseña se hashea con SHA-256 y se guarda en `usuarios.json` como diccionario.
+
+3. **🔑 Login**  
+   El sistema compara el hash de la contraseña introducida con el almacenado. Solo si coinciden se permite el acceso.
+
+4. **🚪 Acceso al menú**  
+   Una vez autenticado, el usuario accede al dashboard meteorológico completo.
 
 
 ## 🚀 Instalación y ejecución
@@ -254,6 +289,8 @@ El sistema está diseñado siguiendo buenas prácticas de desarrollo para garant
 - 🧪 Tests automatizados  
 - ⏱️ Automatización de tareas  
 - 📊 Estadísticas y gráficos en terminal  
+- 🔐 Autenticación segura con hash de contraseñas
+- 💾 Backups automáticos por sesión
 
 ---
 
