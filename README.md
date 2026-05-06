@@ -296,6 +296,8 @@ El sistema está diseñado siguiendo buenas prácticas de desarrollo para garant
 
 ## 🔮 Mejoras futuras
 
+- 📋 Cuestionario de aceptación de términos y condiciones  
+  Implementar el formulario ya diseñado para que los usuarios acepten explícitamente las condiciones de uso antes de utilizar la aplicación. Esto mejorará la    seguridad, la transparencia y el cumplimiento normativo del sistema.
 - 🌐 Interfaz web con Streamlit  
 - 🗄️ Base de datos PostgreSQL  
 - 📊 Dashboard visual avanzado  
